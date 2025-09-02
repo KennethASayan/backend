@@ -20,14 +20,14 @@ const initialFormState = {
   fullName: '',
   name: '',
   email: '',
+  password: '',
   office: { id: '', name: '', code: '' },
   division: '',
-  userRole: '',
   status: 'Activated' as const,
-  role: '',
+  // userRole is removed from here
 }
 
-const form = ref<Partial<User>>(initialFormState)
+const form = ref<Partial<User & { password?: string }>>(initialFormState)
 const isNewUser = computed(() => !props.currentUser)
 
 // Office helper function
@@ -44,44 +44,47 @@ watch(
         // Edit mode - populate form with user data
         const { password, ...userData } = props.currentUser
         form.value = { ...userData }
-        const selectedOffice = getOfficeById(String(props.currentUser.office.id))
-        if (selectedOffice) {
-          form.value.office = selectedOffice
-        }
+        // ⚠️ FIX: Correctly map 'division' from currentUser.division
+        form.value.division = props.currentUser.division
+        form.value.password = '' // Clear password field for security
       } else {
         // Create mode - reset form
         form.value = { ...initialFormState }
       }
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
-// Form validation
 const validateForm = () => {
   const requiredFields = {
     fullName: 'Full Name',
     name: 'Username',
     email: 'Email',
-    'office.id': 'Office',
     division: 'Division',
-    userRole: 'User Role',
-    status: 'Status'
+    status: 'Status',
   }
 
   for (const [field, label] of Object.entries(requiredFields)) {
-    const value = field.includes('.')
-      ? field.split('.').reduce((obj, key) => obj?.[key], form.value)
-      : form.value[field]
-
+    const value = form.value[field as keyof typeof form.value]
     if (!value) {
       toast.addToast({
         title: 'Validation Error',
         description: `${label} is required.`,
-        type: 'error'
+        type: 'error',
       })
       return false
     }
+  }
+
+  // Validate password length for new users
+  if (isNewUser.value && form.value.password && form.value.password.length < 6) {
+    toast.addToast({
+      title: 'Validation Error',
+      description: 'Password must be at least 6 characters long.',
+      type: 'error',
+    })
+    return false
   }
 
   // Validate email format
@@ -90,7 +93,7 @@ const validateForm = () => {
     toast.addToast({
       title: 'Validation Error',
       description: 'Please enter a valid email address.',
-      type: 'error'
+      type: 'error',
     })
     return false
   }
@@ -108,36 +111,90 @@ const handleSaveUser = async () => {
       fullName: form.value.fullName,
       name: form.value.name,
       email: form.value.email,
+      password: form.value.password, // Include password in the request
       division: form.value.division,
       status: form.value.status,
-      office: form.value.office,
-      userRole: form.value.userRole
     }
 
-    if (props.currentUser) {
-      await updateUserApi(String(props.currentUser.id), userData)
-      toast.addToast({
-        title: 'Success',
-        description: 'User updated successfully!',
-        type: 'success'
-      })
+  if (props.currentUser) {
+      // Update existing user
+      try {
+        await updateUserApi(String(props.currentUser.id), userData)
+        toast.addToast({
+          title: 'Success',
+          description: 'User updated successfully!',
+          type: 'success',
+        })
+        emit('user-saved')
+        closeModal()
+      } catch (error: any) {
+        // Handle specific validation errors
+        if (error.errors) {
+          if (error.errors.email) {
+            toast.addToast({
+              title: 'Validation Error',
+              description: error.errors.email[0],
+              type: 'error',
+            })
+          }
+          if (error.errors.name) {
+            toast.addToast({
+              title: 'Validation Error', 
+              description: error.errors.name[0],
+              type: 'error',
+            })
+          }
+        } else {
+          toast.addToast({
+            title: 'Error',
+            description: error.message || 'Failed to update user',
+            type: 'error',
+          })
+        }
+        throw error
+      }
     } else {
-      await createUserApi(userData as Omit<User, 'id'>)
-      toast.addToast({
-        title: 'Success',
-        description: 'User created successfully! Default password is: windows7',
-        type: 'success'
-      })
+      try {
+        await createUserApi(userData)
+        toast.addToast({
+          title: 'Success',
+          description: 'User created successfully!',
+          type: 'success',
+        })
+      } catch (error: any) {
+        // Handle specific validation errors
+        if (error.response?.data?.errors) {
+          const errors = error.response.data.errors
+          if (errors.name) {
+            toast.addToast({
+              title: 'Error',
+              description: 'This username is already taken.',
+              type: 'error',
+            })
+          }
+          if (errors.email) {
+            toast.addToast({
+              title: 'Error',
+              description: 'This email address is already registered.',
+              type: 'error',
+            })
+          }
+        } else {
+          toast.addToast({
+            title: 'Error',
+            description:
+              error.response?.data?.message || 'An error occurred while creating the user.',
+            type: 'error',
+          })
+        }
+        throw error
+      }
     }
 
     emit('user-saved')
     closeModal()
   } catch (error: any) {
-    toast.addToast({
-      title: 'Error',
-      description: error.response?.data?.message || 'An error occurred while saving the user.',
-      type: 'error'
-    })
+    console.error('Error saving user:', error)
   } finally {
     isLoading.value = false
   }
@@ -194,53 +251,32 @@ const closeModal = () => {
           type="password"
           id="password"
           v-model="form.password"
-          :placeholder="isNewUser ? 'Enter password' : 'Optional (leave blank to keep current)'"
+          :placeholder="isNewUser ? 'Enter password' : 'Leave blank to keep current'"
           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+          :required="isNewUser"
         />
       </div>
       <div>
-        <label for="office" class="block text-sm font-medium text-gray-700">Office</label>
-        <select
-          id="office"
-          v-model="form.office!.id"
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+        <label for="division" class="block text-sm font-medium text-gray-700"
+          >Office/Division</label
         >
-          <option value="" disabled>-- Select Office --</option>
-          <option v-for="officeOption in offices" :key="officeOption.id" :value="officeOption.id">
-            {{ officeOption.name }}
-          </option>
-        </select>
-      </div>
-      <div>
-        <label for="division" class="block text-sm font-medium text-gray-700">Division</label>
         <select
           id="division"
           v-model="form.division"
           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
         >
-          <option value="" disabled>-- Select Division --</option>
-          <option value="PENR Office">PENR Office</option>
-          <option value="LGU Coordination">LGU Coordination</option>
-          <option value="HR Section">HR Section</option>
-          <option value="Legal Division">Legal Division</option>
-          <option value="Planning Division">Planning Division</option>
-          <option value="Enforcement Division">Enforcement Division</option>
-          <option value="Records Section">Records Section</option>
+          <option value="" disabled>-- Select Office --</option>
+          <option value="Cashier">Cashier</option>
+          <option value="Oafo">Oafo</option>
+          <option value="System Admin">System Admin</option>
+          <option value="Lpdd">Lpdd</option>
+          <option value="Pmd">Pmd</option>
           <option value="Admin">Admin</option>
           <option value="Finance">Finance</option>
-          <option value="IT">IT</option>
-        </select>
-      </div>
-      <div>
-        <label for="userRole" class="block text-sm font-medium text-gray-700">User Role</label>
-        <select
-          id="userRole"
-          v-model="form.userRole"
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-        >
-          <option value="" disabled>-- Select User Role --</option>
-          <option value="Administrator">Administrator</option>
-          <option value="Staff">Staff</option>
+          <option value="Admin">Ored</option>
+          <option value="Legal">Legal</option>
+          <option value="Rscis">Rscis</option>
+          <option value="Ardms">Ardms</option>
         </select>
       </div>
       <div>

@@ -3,6 +3,7 @@ import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import { toggleSidebarVisibility } from '@/components/ui/Sidebar/sidebarState'
+import { useAuthStore } from '@/components/store/authStore'
 import {
   UserCircleIcon,
   ChevronDownIcon,
@@ -20,6 +21,8 @@ const route = useRoute()
 const router = useRouter()
 const isMobileNavOpen = ref(false)
 const isDropdownOpen = ref(false)
+const auth = useAuthStore()
+const user = auth.user
 const isMobileMenuOpen = ref(false)
 
 const toggleMobileNav = () => {
@@ -358,7 +361,9 @@ const handleDropdownToggle = (isOpen: boolean) => {
               @dropdown-toggle="handleDropdownToggle"
             >
               <template #button-content>
-                <span>Kenneth_Sayan</span>
+             <span class="text-xm font-bold text-gray-500" v-if="user?.department">
+                {{ user.department }}
+              </span>
                 <ChevronUpIcon
                   v-if="isDropdownOpen"
                   class="w-4 h-4 transition-transform duration-200"
@@ -419,7 +424,7 @@ const handleDropdownToggle = (isOpen: boolean) => {
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-3">
               <UserCircleIcon class="w-8 h-8 text-gray-600" />
-              <span class="font-medium text-gray-900">Kenneth_Sayan</span>
+              <!-- <span class="font-medium text-gray-900">Kenneth_Sayan</span> -->
             </div>
             <BellIcon class="w-6 h-6 text-gray-600" />
           </div>

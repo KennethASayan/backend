@@ -1,78 +1,107 @@
 import type { User } from '@/types/user'
 import apiClient from '@/services/api'
 
+// Fetch a new CSRF token before every non-GET request
+const getCsrfToken = async () => {
+  await apiClient.get('/sanctum/csrf-cookie')
+}
+
 export async function fetchUsersApi(): Promise<User[]> {
-  try {
-    const response = await apiClient.get('/dms/users')
-    return response.data
-  } catch (error) {
-    console.error('Error fetching users:', error)
-    throw error
-  }
-}
-
-export async function createUserApi(userData: Omit<User, 'id'>): Promise<User> {
-  try {
-    // Get CSRF cookie first
-    await apiClient.get('/sanctum/csrf-cookie')
-
-    // Add a small delay after getting the CSRF cookie
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    const formattedData = {
-      fullName: userData.fullName,
-      name: userData.name,
-      email: userData.email,
-      division: userData.division,
-      status: userData.status === 'Activated' ? 1 : 0,
-      password: 'windows7'
+    try {
+      const response = await apiClient.get('/dms/users')
+      return response.data
+    } catch (error) {
+      console.error('Error fetching users:', error)
+      throw error
     }
-
-    const response = await apiClient.post('/dms/user', formattedData)
-    return response.data.user
-  } catch (error) {
-    console.error('Error creating user:', error)
-    throw error
   }
-}
 
+export async function createUserApi(userData: Partial<User>): Promise<User> {
+    try {
+        await getCsrfToken()
+
+        const formattedData = {
+            fullName: userData.fullName,
+            name: userData.name,
+            email: userData.email,
+            password: userData.password,
+            division: userData.division,
+            status: userData.status
+        }
+
+        const response = await apiClient.post('/dms/users', formattedData)
+        return response.data.user
+    } catch (error: any) {
+        // Let the component handle the error
+        throw error
+    }
+}
 export async function updateUserApi(userId: string, updatedData: Partial<User>): Promise<User> {
-  try {
-    // Add this line to get the CSRF cookie before making the PUT request.
-    await apiClient.get('/sanctum/csrf-cookie')
-    const formattedData = {
-      fullName: updatedData.fullName,
-      name: updatedData.name,
-      email: updatedData.email,
-      division: updatedData.division,
-      status: updatedData.status === 'Activated' ? 1 : 0
-    }
-    const response = await apiClient.put(`/dms/users/${userId}`, formattedData)
-    return response.data.user
-  } catch (error) {
-    console.error('Error updating user:', error)
-    throw error
-  }
+    try {
+        await getCsrfToken();
+
+        const formattedData = {
+            fullName: updatedData.fullName,
+            name: updatedData.name,
+            email: updatedData.email,
+            division: updatedData.division,
+            status: updatedData.status,
+            password: updatedData.password || undefined
+        };
+
+        const response = await apiClient.put(`/dms/users/${userId}`, formattedData);
+        return response.data.user;
+    } catch (error: any) {
+        // Add specific error handling for validation errors
+        if (error.response?.data?.errors) {
+            const errors = error.response.data.errors;
+            if (errors.email) {
+                throw {
+                    message: 'Validation Error',
+                    errors: {
+                        email: ['This email address is already registered.']
+                    }
+                };
+            }
+            if (errors.name) {
+                throw {
+                    message: 'Validation Error',
+                    errors: {
+                        name: ['This username is already taken.']
+                    }
+                };
+            }
+            // Throw the original validation errors if not handled above
+            throw {
+                message: 'Validation Error',
+                errors: errors
+            };
+        }
+        // For other types of errors
+        throw {
+            message: error.response?.data?.message || 'Error updating user',
+            type: 'error'
+        };
+    }
 }
 
-export async function deleteUserApi(userId: string): Promise<void> {
-  try {
-    // Add this line to get the CSRF cookie before making the DELETE request.
-    await apiClient.get('/sanctum/csrf-cookie');
-    await apiClient.delete(`/dms/users/${userId}`)
-  } catch (error) {
-    console.error('Error deleting user:', error)
-    throw error
-  }
+export async function deleteUserApi(userId: string): Promise<{ message: string; description: string; type: string }> {
+    try {
+        await getCsrfToken();
+        const response = await apiClient.delete(`/dms/users/${userId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        throw error;
+    }
 }
-
-export async function resetPasswordApi(userId: string): Promise<void> {
-  try {
-    // Add this line to get the CSRF cookie before making the POST request.
-    await apiClient.get('/sanctum/csrf-cookie');
-    await apiClient.post(`/dms/users/${userId}/reset-password`)
-  } catch (error) {
-    console.error('Error resetting password:', error)
-    throw error
-  }
+export async function resetPasswordApi(userId: string): Promise<{ message: string; description: string; type: string }> {
+    try {
+        await getCsrfToken();
+        const response = await apiClient.post(`/dms/users/${userId}/reset-password`);
+        return response.data;
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        throw error;
+    }
 }

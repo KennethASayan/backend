@@ -23,14 +23,14 @@ const error = ref<string | null>(null);
 const { addToast } = toast;
 
 function setAuth(authUser: User, authToken: string, rememberMe: boolean) {
-  state.value.user = authUser;
+  state.value.user = { ...authUser };
   state.value.token = authToken;
   state.value.isAuthenticated = true;
   state.value.sidebarActive = true;
 
   const storage = rememberMe ? localStorage : sessionStorage;
   storage.setItem('auth_token', authToken);
-  storage.setItem('user_data', JSON.stringify(authUser));
+  localStorage.setItem('user_data', JSON.stringify(state.value.user)); // <-- This line saves user
   storage.setItem('sidebar_active', 'true');
 }
 
@@ -86,9 +86,8 @@ async function logout(router?: any) {
     const token = state.value.token;
     if (token) {
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      // If you have an API logout endpoint, call it here
-      // await apiClient.post('/api/logout');
-      // delete apiClient.defaults.headers.common['Authorization'];
+      await apiClient.post('/dms/logout');
+      delete apiClient.defaults.headers.common['Authorization'];
     }
     clearAuth();
 
@@ -115,7 +114,7 @@ async function logout(router?: any) {
 }
 
 function initAuth() {
-  try {
+try {
     const storedToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     const storedUser = localStorage.getItem('user_data') || sessionStorage.getItem('user_data');
     const sidebarActive = localStorage.getItem('sidebar_active') || sessionStorage.getItem('sidebar_active');

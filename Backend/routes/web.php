@@ -116,7 +116,7 @@ Route::post('toes/updateProfileByAdmin/{type}', 'ToesController@updateProfileByA
     Route::post('/login', 'DmsAuthController@login');
         Route::get('/logout', 'DmsAuthController@logout');
         Route::get('/users', 'DmsAuthController@getAllUsers');
-        Route::post('/user', 'DmsAuthController@createUser');
+        Route::post('/users', 'DmsAuthController@createUser'); // Change from /user to /users
         Route::put('/users/{id}', 'DmsAuthController@updateUser');
         Route::delete('/users/{id}', 'DmsAuthController@deleteUser');
         Route::post('/users/{id}/reset-password', 'DmsAuthController@resetPassword');

@@ -1,5 +1,3 @@
-// src/types/user.ts
-
 export interface Office {
   id: string;
   name: string;
@@ -8,17 +6,16 @@ export interface Office {
 
 export interface User {
   id: string | number;
-  fullName: string; // New: Full name for display and input
-  firstName?: string; // Optional: Can be used for backend storage if needed
-  middleName?: string; // Optional
-  lastName?: string; // Optional
+  department?: string; // Make this required, not optional
   name: string;
+  user_dept: string;
   email: string;
-  avatar?: string;
-  role: string;
-  office: Office;
-  password?: string;
-  status: 'Activated' | 'Deactivated';
+  status: boolean | string;
+  fullName: string;
   division: string;
-  userRole: string;
+  avatar?: string;
+  role?: string;
+  office?: Office;
+  password?: string;
+  userRole?: string;
 }

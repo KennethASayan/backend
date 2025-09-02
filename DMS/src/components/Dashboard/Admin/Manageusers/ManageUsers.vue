@@ -112,12 +112,23 @@ const closeDeleteConfirmModal = () => {
 const handleDeleteUser = async () => {
   if (currentUser.value) {
     try {
-      // ✅ Fix: Convert currentUser.value.id to string
-      await deleteUserApi(String(currentUser.value.id))
-      closeDeleteConfirmModal()
-      fetchUsers()
+      const result = await deleteUserApi(String(currentUser.value.id));
+      closeDeleteConfirmModal();
+      await fetchUsers();
+      
+      // Add toast notification for success
+      toast?.addToast({
+        title: result.message,
+        description: result.description,
+        type: result.type
+      });
     } catch (error: any) {
-      console.error('Error deleting user:', error)
+      // Add toast notification for error
+      toast?.addToast({
+        title: 'Error',
+        description: error.response?.data?.description || 'Failed to delete user',
+        type: 'error'
+      });
     }
   }
 }
@@ -136,15 +147,23 @@ const closeResetPasswordConfirmModal = () => {
 const handleResetPassword = async () => {
   if (currentUser.value) {
     try {
-      // ✅ Fix: Convert currentUser.value.id to string
-      await resetPasswordApi(String(currentUser.value.id))
-      closeResetPasswordConfirmModal()
+      const result = await resetPasswordApi(String(currentUser.value.id));
+      closeResetPasswordConfirmModal();
+      
+      toast?.addToast({
+        title: result.message,
+        description: result.description,
+        type: result.type
+      });
     } catch (error: any) {
-      console.error('Error resetting password:', error)
+      toast?.addToast({
+        title: 'Error',
+        description: error.response?.data?.description || 'Failed to reset password',
+        type: 'error'
+      });
     }
   }
 }
-
 // Mobile dropdown functions
 const toggleDropdown = (userId: number) => {
   activeDropdown.value = activeDropdown.value === userId ? null : userId

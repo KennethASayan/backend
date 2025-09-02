@@ -10,7 +10,6 @@ import {
   DocumentChartBarIcon,
 } from '@heroicons/vue/24/solid'
 import { useRouter } from 'vue-router' // Imported useRouter
-
 import DueDocumentsDrawer from './DueDocumentsDrawer.vue'
 import AddDocumentModal from './AddDocumentModal.vue'
 import CalendarModal from './CalendarModal.vue'
@@ -21,6 +20,7 @@ import InternalDocumentActivityDrawer from './InternalDocuments(activity)/Intern
 import button from '@/components/ui/button/Button.vue'
 import SystemLogsDrawer from '@/components/Dashboard/Admin/SystemLogs/SystemLogsDrawer.vue'
 import type { DashboardStat, RecentActivity, QuickAction } from '@/types/index'
+
 
 // Initialize router
 const router = useRouter()

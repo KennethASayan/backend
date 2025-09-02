@@ -26,14 +26,4 @@ class Users extends Authenticatable
         'password',
     ];
 
-    // Use plain text password comparison for legacy database
-    public function getAuthPassword()
-    {
-        return $this->password;
-    }
-
-    public function validateForPassportPasswordGrant($password)
-    {
-        return $this->password === $password;
-    }
 }

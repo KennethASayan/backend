@@ -14,6 +14,7 @@ class VerifyCsrfToken extends Middleware
     protected $except = [
         //  'https://r10api.denr10.com.ph/api/*',
         'sanctum/csrf-cookie',
+            'dms/*', // Temporarily exclude all DMS routes for testing
     '/dms/login',
     '/dms/logout',
     '/dms/users',

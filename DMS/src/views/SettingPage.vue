@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { UserCircleIcon, LockClosedIcon, MoonIcon } from '@heroicons/vue/24/outline'
+import { UserCircleIcon, LockClosedIcon } from '@heroicons/vue/24/outline'
 </script>
 
 <template>
