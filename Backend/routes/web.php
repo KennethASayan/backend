@@ -115,11 +115,14 @@ Route::post('toes/updateProfileByAdmin/{type}', 'ToesController@updateProfileByA
     Route::prefix('dms')->group(function () {
     Route::post('/login', 'DmsAuthController@login');
         Route::get('/logout', 'DmsAuthController@logout');
+        Route::get('/me', 'DmsAuthController@me'); // Add this line
         Route::get('/users', 'DmsAuthController@getAllUsers');
         Route::post('/users', 'DmsAuthController@createUser'); // Change from /user to /users
         Route::put('/users/{id}', 'DmsAuthController@updateUser');
         Route::delete('/users/{id}', 'DmsAuthController@deleteUser');
         Route::post('/users/{id}/reset-password', 'DmsAuthController@resetPassword');
     Route::get('/getDueDocuments', 'DmsController@getDueDocuments');
+
+
 
 });

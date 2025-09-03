@@ -1,21 +1,20 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import Button from '@/components/ui/button/Button.vue'
-
-interface Props {
-  buttonText?: string
-  buttonRoute?: string
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  buttonText: 'Login',
-  buttonRoute: '/login',
-})
+import { useAuthStore } from '@/components/store/authStore'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
-const handleNavigation = () => {
-  router.push(props.buttonRoute)
+const goToLogin = () => {
+  router.push('/login')
+}
+
+const goToDashboard = () => {
+  router.push('/Dashboard')
+}
+
+const handleLogout = async () => {
+  await authStore.logout(router)
 }
 </script>
 
@@ -38,12 +37,40 @@ const handleNavigation = () => {
             </div>
           </div>
         </div>
-        <button
-          class="w-full sm:w-auto inline-flex items-center justify-center py-2 px-4 rounded-md font-medium text-sm cursor-pointer transition-all duration-200 bg-green-500 text-white hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-          @click="handleNavigation"
-        >
-          {{ buttonText }}
-        </button>
+
+        <!-- Navigation Actions -->
+        <div class="flex items-center space-x-4">
+          <!-- Show when NOT authenticated -->
+          <template v-if="!authStore.isAuthenticated.value">
+            <button
+              @click="goToLogin"
+              class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors duration-200 font-medium"
+            >
+              Login
+            </button>
+          </template>
+
+          <!-- Show when authenticated -->
+          <template v-else>
+            <div class="flex items-center space-x-4">
+              <span class="text-gray-700">
+                Welcome, {{ authStore.user.value?.name || authStore.user.value?.fullName }}
+              </span>
+              <button
+                @click="goToDashboard"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors duration-200 font-medium"
+              >
+                Go to Dashboard
+              </button>
+              <button
+                @click="handleLogout"
+                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 font-medium"
+              >
+                Logout
+              </button>
+            </div>
+          </template>
+        </div>
       </div>
     </div>
   </nav>

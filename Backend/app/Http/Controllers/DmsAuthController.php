@@ -7,17 +7,17 @@ use Illuminate\Support\Facades\Auth;
 use App\DMS\Users;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
 
 
 class DmsAuthController extends Controller
 {
- public function login(Request $request)
+public function login(Request $request)
 {
     $credentials = $request->validate([
         'department' => 'required|string',
         'password' => 'required|string',
     ]);
-    \Log::info('Login attempt:', $credentials);
 
     $user = Users::where('department', $credentials['department'])->first();
 
@@ -27,22 +27,22 @@ class DmsAuthController extends Controller
         ], 401);
     }
 
-    // Try both hashed and plain text password comparison
-    if (Hash::check($credentials['password'], $user->password) || 
+    if (Hash::check($credentials['password'], $user->password) ||
         $credentials['password'] === $user->password) {
-        
-        // If using plain text password, hash it for security
+
+        // Hash plain text passwords
         if ($credentials['password'] === $user->password) {
             $user->password = Hash::make($credentials['password']);
             $user->save();
         }
 
-        // Manually log in the user
-        Auth::guard('third_db')->login($user);
-
+        // Log in the user using Laravel's session
+        Auth::guard('third_db')->login($user, $request->get('rememberMe', false));
         $request->session()->regenerate();
 
-        // Return complete user data
+        // Generate a simple token for frontend use (optional)
+        $token = base64_encode($user->user_id . ':' . time());
+
         return response()->json([
             'user' => [
                 'id' => $user->user_id,
@@ -51,9 +51,10 @@ class DmsAuthController extends Controller
                 'user_dept' => $user->user_dept,
                 'email' => $user->email,
                 'status' => $user->status,
-                'fullName' => $user->name, // Include full name
-                'division' => $user->user_dept, // Include division
+                'fullName' => $user->name,
+                'division' => $user->user_dept,
             ],
+            'token' => $token,
             'message' => 'Login successful',
         ]);
     }
@@ -72,6 +73,32 @@ class DmsAuthController extends Controller
         return response()->json(['message' => 'Logged out successfully']);
     }
 
+    public function me(Request $request)
+{
+    try {
+        $user = Auth::guard('third_db')->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        return response()->json([
+            'user' => [
+                'id' => $user->user_id,
+                'department' => $user->department,
+                'name' => $user->name,
+                'user_dept' => $user->user_dept,
+                'email' => $user->email,
+                'status' => $user->status,
+                'fullName' => $user->name,
+                'division' => $user->user_dept,
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['message' => 'Unauthorized'], 401);
+    }
+}
+
     public function user(Request $request)
     {
         return response()->json(Auth::guard('third_db')->user());
@@ -88,7 +115,7 @@ class DmsAuthController extends Controller
             'email',
             'status'
         )
-        ->orderBy('user_id', 'desc') 
+        ->orderBy('user_id', 'desc')
         ->get();
 
         return response()->json($users->map(function ($user) {
@@ -144,7 +171,7 @@ public function createUser(Request $request)
             'errors' => $e->errors()
         ], 422);
     } catch (\Exception $e) {
-        \Log::error('User creation error: ' . $e->getMessage());
+        Log::error('User creation error: ' . $e->getMessage());
         return response()->json([
             'message' => 'Error creating user',
             'error' => $e->getMessage()
@@ -190,7 +217,7 @@ public function updateUser(Request $request, $id)
             'errors' => $e->errors()
         ], 422);
     } catch (\Exception $e) {
-        \Log::error('User update error: ' . $e->getMessage());
+        Log::error('User update error: ' . $e->getMessage());
         return response()->json([
             'message' => 'Error updating user',
             'type' => 'error',
@@ -212,7 +239,7 @@ public function deleteUser($id)
             'type' => 'success'
         ]);
     } catch (\Exception $e) {
-        \Log::error('User deletion error: ' . $e->getMessage());
+        Log::error('User deletion error: ' . $e->getMessage());
         return response()->json([
             'message' => 'Error',
             'description' => 'Failed to delete user',
@@ -234,7 +261,7 @@ public function resetPassword($id)
             'description' => "Password has been reset to default (windows7)"
         ]);
     } catch (\Exception $e) {
-        \Log::error('Password reset error: ' . $e->getMessage());
+        Log::error('Password reset error: ' . $e->getMessage());
         return response()->json([
             'message' => 'Error resetting password',
             'type' => 'error',

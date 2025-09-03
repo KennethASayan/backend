@@ -5,9 +5,17 @@ import 'vue-loading-overlay/dist/css/index.css'
 import Antd from 'ant-design-vue'
 import { useAuthStore } from '@/components/store/authStore'
 
-const app = createApp(App)
-const auth = useAuthStore()
-auth.initAuth()
-app.use(router)
-app.use(Antd)
-app.mount('#app')
+async function initializeApp() {
+  const app = createApp(App)
+  
+  // Initialize auth store before router
+  const authStore = useAuthStore()
+  await authStore.initAuth()
+  
+  app.use(router)
+  app.use(Antd)
+  app.mount('#app')
+}
+
+// Initialize the app
+initializeApp().catch(console.error)

@@ -15,9 +15,9 @@ return [
     |
     */
 
-   'paths' => ['*', 'sanctum/csrf-cookie', 'dms/*'],
+    'paths' => ['*', 'sanctum/csrf-cookie', 'dms/*'],
     'allowed_methods' => ['*'],
-    'allowed_origins' => ['http://localhost:5173'],
+    'allowed_origins' => ['http://localhost:5173'], // Make sure this matches your frontend URL
     'allowed_origins_patterns' => [],
     'allowed_headers' => ['*'],
     'exposed_headers' => ['*'],

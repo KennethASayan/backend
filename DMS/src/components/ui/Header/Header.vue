@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import { toggleSidebarVisibility } from '@/components/ui/Sidebar/sidebarState'
@@ -8,10 +8,8 @@ import {
   UserCircleIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  BellIcon,
   MagnifyingGlassIcon,
   ChevronRightIcon,
-  HomeIcon,
   Bars3Icon,
   XMarkIcon,
 } from '@heroicons/vue/24/outline'
@@ -19,11 +17,75 @@ import DropdownMenu from '@/components/ui/dropdownmenu/DropDownMenu.vue'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 const isMobileNavOpen = ref(false)
 const isDropdownOpen = ref(false)
-const auth = useAuthStore()
-const user = auth.user
 const isMobileMenuOpen = ref(false)
+
+// Initialize auth state when component mounts
+onMounted(async () => {
+  // Initialize auth store if not already done
+  if (!authStore.isAuthenticated.value) {
+    await authStore.initAuth()
+  }
+  
+  // Set up datetime updater
+  updateDateTime()
+  intervalId = setInterval(updateDateTime, 1000)
+  
+  // Optional: Periodically refresh user data to ensure it's current
+  // This helps if user data changes in another tab/window
+  const refreshInterval = setInterval(async () => {
+    if (authStore.isAuthenticated.value) {
+      await authStore.refreshUserData()
+    }
+  }, 5 * 60 * 1000) // Refresh every 5 minutes
+  
+  // Clean up interval on unmount
+  onBeforeUnmount(() => {
+    clearInterval(refreshInterval)
+  })
+})
+
+// Get user department from auth store with better fallback
+const userDepartment = computed(() => {
+  const user = authStore.user.value
+  if (!user) return 'User'
+  
+  // Try different possible field names for department
+  return user.department || user.user_dept || user.division || 'User'
+})
+
+// Get user full name for display with better fallback
+const userFullName = computed(() => {
+  const user = authStore.user.value
+  if (!user) return 'User'
+  
+  // Try different possible field names for full name
+  return user.fullName || user.name || user.displayName || 'User'
+})
+
+// Watch for authentication changes to handle login/logout
+watch(
+  () => authStore.isAuthenticated.value,
+  async (isAuth) => {
+    if (!isAuth) {
+      // User is no longer authenticated, redirect to login
+      await router.push('/LandingPage')
+    }
+  }
+)
+
+// Watch for user data changes to ensure reactivity
+watch(
+  () => authStore.user.value,
+  (newUser, oldUser) => {
+    if (newUser && newUser !== oldUser) {
+      console.log('User data updated in header:', newUser)
+    }
+  },
+  { deep: true }
+)
 
 const toggleMobileNav = () => {
   isMobileNavOpen.value = !isMobileNavOpen.value
@@ -209,7 +271,7 @@ const breadcrumbs = computed((): BreadcrumbItem[] => {
 })
 
 const currentDateTime = ref('')
-let intervalId: NodeJS.Timeout | undefined // Correct type annotation
+let intervalId: NodeJS.Timeout | undefined
 
 const updateDateTime = () => {
   const now = new Date()
@@ -229,11 +291,6 @@ const updateDateTime = () => {
   currentDateTime.value = `Today is ${dateString}, Time is ${timeString}`
 }
 
-onMounted(() => {
-  updateDateTime()
-  intervalId = setInterval(updateDateTime, 1000)
-})
-
 onBeforeUnmount(() => {
   if (intervalId) {
     clearInterval(intervalId)
@@ -241,14 +298,47 @@ onBeforeUnmount(() => {
 })
 
 const userMenuItems = [
-  { label: 'Settings', path: '/settings', class: 'text-gray-700' },
-  { label: 'Logout', path: '/LandingPage', class: 'text-red-600' },
+  { label: 'Settings', action: 'navigate', path: '/settings', class: 'text-gray-700' },
+  { label: 'Logout', action: 'logout', class: 'text-red-600' },
 ]
 
-const handleMenuSelect = (item: (typeof userMenuItems)[0]) => {
+const handleMenuSelect = async (item: (typeof userMenuItems)[0]) => {
   console.log(`Selected: ${item.label}`)
-  isDropdownOpen.value = false
-  isMobileMenuOpen.value = false
+  
+  if (item.action === 'logout') {
+    try {
+      // Close dropdowns first
+      isDropdownOpen.value = false
+      isMobileMenuOpen.value = false
+      
+      // Use the auth store logout method
+      await authStore.logout(router)
+    } catch (error) {
+      console.error('Logout failed:', error)
+      // Even if logout API fails, clear local state and redirect
+      authStore.clearAuth()
+      await router.push('/LandingPage')
+    }
+  } else if (item.action === 'refresh') {
+    // Refresh user data from database
+    isDropdownOpen.value = false
+    isMobileMenuOpen.value = false
+    
+    try {
+      const success = await authStore.refreshUserData()
+      if (success) {
+        console.log('User data refreshed successfully')
+      } else {
+        console.warn('Failed to refresh user data')
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error)
+    }
+  } else if (item.action === 'navigate' && item.path) {
+    isDropdownOpen.value = false
+    isMobileMenuOpen.value = false
+    await router.push(item.path)
+  }
 }
 
 const searchQueryInput = ref('')
@@ -273,10 +363,32 @@ const navigateToBreadcrumb = (item: BreadcrumbItem) => {
 const handleDropdownToggle = (isOpen: boolean) => {
   isDropdownOpen.value = isOpen
 }
+
+// Check authentication status periodically
+const checkAuthStatus = async () => {
+  if (authStore.isAuthenticated.value && authStore.token.value) {
+    try {
+      await authStore.validateSession()
+    } catch (error) {
+      console.error('Session validation failed:', error)
+      // Session is invalid, logout user
+      await authStore.logout(router)
+    }
+  }
+}
+
+// Check auth status every 10 minutes
+onMounted(() => {
+  const authCheckInterval = setInterval(checkAuthStatus, 10 * 60 * 1000)
+  
+  onBeforeUnmount(() => {
+    clearInterval(authCheckInterval)
+  })
+})
 </script>
 
 <template>
-  <header class="bg-white shadow-md sticky top-0 ">
+  <header class="bg-white shadow-md sticky top-0 z-40">
     <div class="flex items-center justify-between px-4 py-3">
       <div class="flex items-center space-x-3 flex-1 min-w-0">
         <button
@@ -352,18 +464,17 @@ const handleDropdownToggle = (isOpen: boolean) => {
           <span class="text-sm text-gray-600 whitespace-nowrap">
             {{ currentDateTime }}
           </span>
-          <BellIcon class="w-6 h-6 text-gray-600 hover:text-gray-800 cursor-pointer transition-colors duration-200" />
           <div class="flex items-center space-x-2">
             <UserCircleIcon class="w-6 h-6 text-gray-600" />
             <DropdownMenu
-              content-class="w-48 "
+              content-class="w-48 z-50"
               buttonClass="flex z-[9999] items-center space-x-2 text-sm text-gray-700 hover:text-gray-900 transition-colors duration-200"
               @dropdown-toggle="handleDropdownToggle"
             >
               <template #button-content>
-             <span class="text-xm font-bold text-gray-500" v-if="user?.department">
-                {{ user.department }}
-              </span>
+                <span class="text-sm font-bold text-gray-600" :title="userFullName">
+                  {{ userDepartment }}
+                </span>
                 <ChevronUpIcon
                   v-if="isDropdownOpen"
                   class="w-4 h-4 transition-transform duration-200"
@@ -375,15 +486,19 @@ const handleDropdownToggle = (isOpen: boolean) => {
               </template>
 
               <div class="py-1">
-                <router-link
+                <!-- Display user info in dropdown -->
+                <div class="px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
+                  <div class="font-medium text-gray-700">{{ userFullName }}</div>
+                  <div>{{ userDepartment }}</div>
+                </div>
+                <button
                   v-for="item in userMenuItems"
                   :key="item.label"
-                  :to="item.path"
-                  :class="[item.class, 'block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-200']"
+                  :class="[item.class, 'block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-200']"
                   @click="handleMenuSelect(item)"
                 >
                   {{ item.label }}
-                </router-link>
+                </button>
               </div>
             </DropdownMenu>
           </div>
@@ -424,21 +539,26 @@ const handleDropdownToggle = (isOpen: boolean) => {
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-3">
               <UserCircleIcon class="w-8 h-8 text-gray-600" />
-              <!-- <span class="font-medium text-gray-900">Kenneth_Sayan</span> -->
+              <div class="flex flex-col">
+                <span class="text-sm font-bold text-gray-600">
+                  {{ userDepartment }}
+                </span>
+                <span class="text-xs text-gray-500">
+                  {{ userFullName }}
+                </span>
+              </div>
             </div>
-            <BellIcon class="w-6 h-6 text-gray-600" />
           </div>
 
           <div class="space-y-1 pt-2 border-t border-gray-100">
-            <router-link
+            <button
               v-for="item in userMenuItems"
               :key="item.label"
-              :to="item.path"
-              :class="[item.class, 'block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100 transition-colors duration-200']"
+              :class="[item.class, 'block w-full text-left px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100 transition-colors duration-200']"
               @click="handleMenuSelect(item)"
             >
               {{ item.label }}
-            </router-link>
+            </button>
           </div>
         </div>
       </div>
