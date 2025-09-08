@@ -1,0 +1,155 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+/* landingpage */
+.app {
+  min-height: 100vh;
+}
+body{
+  background-color: #f5f5f5;
+}
+
+aside::-webkit-scrollbar {
+  display: none;
+}
+
+aside {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+
+/* Toast Notification */
+.fade-enter-active,
+.fade-leave-active {
+  @apply transition-opacity duration-300 ease-in-out transform-gpu;
+}
+.fade-enter-from {
+  @apply opacity-0 -translate-y-5;
+}
+.fade-leave-to {
+  @apply opacity-0 -translate-y-5;
+}
+
+/* sidebar */
+.router-link-exact-active,
+.router-link-exact-active.child-link {
+  background-color: #ecfdf5; /* Tailwind's bg-green-50 */
+  color: #047857; /* Tailwind's text-green-700 */
+}
+
+.router-link-exact-active .flex-shrink-0,
+.router-link-exact-active.child-link .flex-shrink-0 {
+  color: #059669; /* Tailwind's text-green-600 for the icon */
+}
+
+/* Optional: Ensure active links don't change background on hover if you prefer */
+.router-link-exact-active:hover,
+.router-link-exact-active.child-link:hover {
+  background-color: #ecfdf5; /* Keep it green */
+  color: #047857; /* Keep text color */
+}
+
+/* Ensure non-active links still have their hover states */
+.group:not(.router-link-exact-active):hover,
+.group:not(.router-link-exact-active.child-link):hover {
+  background-color: #f9fafb; /* Tailwind's hover:bg-gray-50 */
+  color: #111827; /* Tailwind's hover:text-gray-900 */
+}
+/* ant design document tracker*/
+:deep(.ant-timeline-item-tail) {
+  border-inline-start: 2px solid #e5e7eb;
+}
+
+:deep(.ant-card-body) {
+  padding: 12px;
+}
+
+:deep(.ant-timeline-item-content) {
+  min-height: auto;
+}
+
+:deep(.ant-timeline-item:last-child) {
+  padding-bottom: 0;
+}
+
+:deep(.ant-card) {
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+:deep(.ant-tag) {
+  border-radius: 4px;
+}
+
+@media (max-width: 640px) {
+  input::placeholder {
+    font-size: 14px;
+  }
+}
+
+/*Header*/
+/* Prevent text from wrapping on small screens */
+.whitespace-nowrap {
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  input::placeholder {
+    font-size: 14px;
+  }
+}
+
+
+/* Add these styles */
+
+/* Layout adjustments */
+@media (min-width: 768px) {
+  .ml-64 {
+    margin-left: 16rem;
+  }
+}
+
+/* Sidebar adjustments */
+@media (max-width: 767px) {
+  aside {
+    transform: translateX(-100%);
+  }
+  
+  aside.open {
+    transform: translateX(0);
+  }
+}
+
+/* Header adjustments */
+.fixed {
+  position: fixed;
+}
+
+@media (min-width: 768px) {
+  .md\:relative {
+    position: relative;
+  }
+}
+
+/* this is for time and motion incoming documents final action */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar::-webkit-scrollbar {
+  height: 8px;
+}
+.scrollbar-track-gray-100::-webkit-scrollbar-track {
+  background-color: #f3f4f6;
+  border-radius: 4px;
+}
+.scrollbar-thumb-gray-400::-webkit-scrollbar-thumb {
+  background-color: #9ca3af;
+  border-radius: 4px;
+}

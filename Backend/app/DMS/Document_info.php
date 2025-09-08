@@ -1,0 +1,101 @@
+<?php
+
+namespace App\DMS;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Document_info extends Model
+{
+    //
+    protected $connection="pgsql_third";
+    public $table = 'document_info';
+
+    public $fillable = [
+        "document_no",
+        "confidential",
+        "no_compliance",
+        "acted_status",
+        "date_received",
+        "time_received",
+        "document_deadline",
+        "arta_deadline",
+        "subject",
+        "name_of_send_and_address",
+        "date_received_ored",
+        "time_received_ored",
+        "remarks_office_rd",
+        "referred_to",
+        "date_released_bureaus",
+        "time_released_bureaus",
+        "red_instructions",
+        "red_input",
+        "date_received_oard",
+        "time_received_oard",
+        "date_rec_by_ref_office",
+        "time_rec_by_ref_office",
+        "ard_instructions",
+        "document_acted",
+        "action_office",
+        "date_rec_by_fao",
+        "time_rec_by_fao",
+        "doc_rerouted_to",
+        "date_rerouted",
+        "time_rerouted",
+        "rerouted_date_received",
+        "additional_notes",
+        "oard_final_date_received",
+        "oard_final_time_received",
+        "oard_revision_date",
+        "ored_final_date_received",
+        "ored_final_time_received",
+        "ored_revision_date_rec",
+        "ored_revision_date",
+        "approved_date_released",
+        "approved_time_released",
+        "date_released_to_client",
+        "mode",
+        "originated_office",
+        "oard_referred",
+        "final_act_office",
+        "doc_reroute_date_rec",
+        "internal_transaction",
+        "oard_released_dates",
+        "oard_revision_dates",
+        "oard_revision_date_rec",
+        "ored_released_dates",
+        "ored_revision_dates",
+        "docu_type",
+        "document_classification",
+        "level_of_priority",
+        "oard_rec",
+        "ored_rec",
+        "date_received_by_creator",
+        "date_released",
+        "procurement",
+        "finance",
+        "ada_no",
+        "cashier",
+        "final_action_offices",
+        "oardts_dt_received",
+        "oardms_dt_received",
+    ];
+
+    protected $casts = [
+        "referred_to" => "array",
+        "red_instructions" => "array",
+        "mode" => "array",
+        "oard_rec" => "array",
+        "ored_rec" => "array",
+        "procurement" => "array",
+        "finance" => "array",
+        "cashier" => "array",
+        "final_action_offices" => "array",
+        "oardts_dt_received" => "array",
+        "oardms_dt_received" => "array",
+        "oardsc_dt_received" => "array",
+        "dt_faos" => "array",
+        "reroute_offices" => "array",
+        "dt_rrfaos" => "array",
+        "activity_reports" => "array"
+    ];
+}
